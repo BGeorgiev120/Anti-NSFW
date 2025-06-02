@@ -20,6 +20,7 @@ class AggressiveNSFWDetector:
     def __init__(self, check_interval=0.5, sensitivity='medium'):
         """
         Aggressive NSFW Detection System with Tab-specific closing for browsers
+        Now includes anime/hentai detection capabilities
         """
         self.check_interval = check_interval
         self.sensitivity = sensitivity
@@ -28,9 +29,9 @@ class AggressiveNSFWDetector:
         
         # Much more aggressive thresholds
         self.thresholds = {
-            'low': {'total_score': 36, 'skin_threshold': 25, 'explicit_threshold': 20},
-            'medium': {'total_score': 26, 'skin_threshold': 18, 'explicit_threshold': 15},
-            'high': {'total_score': 16, 'skin_threshold': 12, 'explicit_threshold': 10}
+            'low': {'total_score': 36, 'skin_threshold': 25, 'explicit_threshold': 20, 'anime_threshold': 30},
+            'medium': {'total_score': 26, 'skin_threshold': 18, 'explicit_threshold': 15, 'anime_threshold': 22},
+            'high': {'total_score': 16, 'skin_threshold': 12, 'explicit_threshold': 10, 'anime_threshold': 15}
         }
         
         self.excluded_processes = {
@@ -40,7 +41,7 @@ class AggressiveNSFWDetector:
             'cmd.exe', 'powershell.exe', 'conhost.exe', 'taskmgr.exe'
         }
         
-        # Known NSFW websites and patterns
+        # Known NSFW websites and patterns (includes anime/hentai sites)
         self.nsfw_domains = {
             'pornhub.com', 'xvideos.com', 'xnxx.com', 'redtube.com',
             'youporn.com', 'tube8.com', 'spankbang.com', 'xhamster.com',
@@ -70,55 +71,56 @@ class AggressiveNSFWDetector:
             'porno365.com', 'vipissy.com', 'extremetube.com', 'mypornmotion.com',
             'porndig.com', 'wetplace.com', 'pornohd.com', 'gotporn.com',
             'milfzr.com', 'freexcafe.com',
-            'brazzersnetwork.com', 'publicagent.com', 'fakehub.com', 'firstanalquest.com',
-            'analvids.com', 'castingcouch-hd.com', 'ftvgirls.com', 'watchersweb.com',
-            'joymii.com', 'sexart.com', 'alsangels.com', 'alscan.com',
-            'twistys.com', 'desirefilms.com', 'lustcinema.com', 'vivthomas.com',
-            'joyourself.com', 'mofos.com', 'loveherfeet.com', 'pinkotgirls.com',
-            'bravoporn.com', 'handjobhub.com', 'teensnow.com', '18xgirls.com',
-            'pornhat.com', 'pornbimbo.com', 'bigtitsroundasses.com', 'babes.com',
-            'deliciousnights.com', 'watchmygf.net', 'see.xxx', 'tranny.one',
-            'transangels.com', 'grooby.com', 'shemaletubevideos.com', 'shemalestardb.com',
-            'helloladyboy.com', 'thothub.lol', 'leakgirls.cc', 'thesexdoll.org',
-            'excoffice.com', 'camsoda.com', 'sexcamly.com', 'mydirtyhobby.com',
-            'homepornbay.com', 'homemoviestube.com', 'spizoo.com', 'privatecasting-x.com',
-            'realteengirls.com', 'wankoz.com',
-            'nudevista.com', 'javcl.com', 'eroxia.com', 'biguz.net',
-            'sexvid.pro', 'hardsextube.com', 'ok.xxx', 'eporner.com',
-            'porntrex.com', 'keezmovies.com', 'empflix.com', 'yuvutu.com',
-            'madthumbs.com', 'ah-me.com', 'vidz.com', 'pornicom.com',
-            'adulttime.com', 'xrares.com', 'naughtyblog.org', 'javfinder.is',
-            'jav.guru', 'hotjav.com', 'javjunkies.com', 'freematureporn.org',
-            'maturetubehere.com', 'grandmams.com', 'oldje.com', 'maturesfuckyoungboys.com',
-            'momxxx.com', 'milftoon.com', 'toonpass.com', '3dhentaivideo.com',
-            'simply-hentai.com', 'hentai-foundry.com', 'multporn.net', '8muses.xxx',
-            'luxuretv.com', 'anysex.com', 'porn300.com', 'hdzog.com',
-            'boyfriendtv.com', 'spankbang.party', 'czechav.com', '21naturals.com',
-            'analbeauty.com', 'trueamateurmodels.com', 'watchxxxfree.cc', 'babesource.com',
-            '18stream.com', 'pornrabbit.com', 'cliphunter.com', 'watchporn.to',
-            'letfap.com', 'planetsuzy.org', 'pornrips.cc', 'tubepornclassic.com',
-            'xvxx.com', 'vipergirls.to', 'pornrewind.com', 'hot-sex-tube.com',
-            'clipsage.com', 'adultbay.org', 'camsfinder.com', 'camstreams.tv',
-            'chatubate.cam', 'leakgirls.live', 'recurbate.com', 'extralunchmoney.com',
-            'camplace.com', 'streamate.com', 'watchgirlsplay.com', 'sxyprn.com',
-            'wetpussygames.com', 'sextvx.com', 'camsfinder.live', 'xxxtube.com',
-            'madporns.com', 'xvideosdesi.com', 'xhamsterlive.com', 'xxxaporn.com',
-            'fuckmaturetube.com', 'sextb.net', 'voyeurweb.com', 'filf.com',
-            'nudefakes.net', 'videobox.com', 'alotporn.com', 'tubewolf.com',
-            'teenslikeitbig.com', 'realityjunkies.com', 'nurumassage.com', 'digitaldesire.com',
-            'digitalplayground.com', 'sexyhub.com', 'hustler.com', 'wicked.com',
-            'penthouse.com', 'metcams.com', 'camsoda.cam', 'secretfriends.com'
-
-
+            # ANIME/HENTAI SITES
+            'hentaihaven.org', 'hanime.tv', 'hentai.tv', 'hentaistream.com',
+            'hentaiworld.tv', 'hentaifreak.org', 'simply-hentai.com', 'hentai-foundry.com',
+            'nhentai.net', 'doujindesu.com', 'hitomi.la', 'e-hentai.org',
+            'exhentai.org', 'rule34.paheal.net', 'gelbooru.com', 'danbooru.donmai.us',
+            'sankakucomplex.com', 'yande.re', 'konachan.com', 'zerochan.net',
+            'hentai2read.com', 'tsumino.com', 'fakku.net', 'hentainexus.com',
+            'multporn.net', '8muses.com', 'porncomix.info', 'allporncomic.com',
+            'hdporncomics.com', 'hentaicomics.me', 'milftoon.com', 'toonily.com',
+            'manytoon.com', 'manhwa18.cc', 'manhwa-raw.com', 'luscious.net',
+            'hentai-manga.me', 'hentaimama.io', 'doujins.com', 'myreadingmanga.info',
+            'mangago.me', 'mangakakalot.com', 'manganato.com', 'mangadex.org',
+            'hentaifox.com', 'pururin.io', 'simply-hentai.com', 'animeidhentai.com',
+            'hentaikey.com', 'hentai.name', 'muchohentai.com', 'hentaiyes.com',
+            'asmhentai.com', 'imhentai.xxx', 'hentaihand.com', 'hentaiera.com',
+            'ehentai.org', 'hentai-chan.me', 'hentai4free.net', 'hentaigame.org',
+            'hentaicloud.com', 'hentaiburn.com', 'anime-sharing.com', 'ulmf.org',
+            'vndb.org', 'f95zone.to', 'lewdzone.com', 'nutaku.net',
+            'projecth.game', 'kagura-games.com', 'jastusa.com', 'mangagamer.com',
+            'dlsite.com', 'fanza.com', 'getchu.com', 'gyutto.com',
+            'hentaipulse.com', 'sankakucomplex.com', 'animenewsnetwork.com',
+            'myanimelist.net', 'anidb.net', 'kitsu.io', 'anime-planet.com',
+            'anilist.co', 'animesuge.io', 'gogoanime.io', '9anime.to',
+            'kissanime.ru', 'animefreak.tv', 'animeultima.to', 'animehub.ac',
+            'rule34video.com', 'xbooru.com', 'realbooru.com', 'furry.booru.org',
+            'tbib.org', 'derpibooru.org', 'e926.net', 'furaffinity.net',
+            'inkbunny.net', 'sofurry.com', 'weasyl.com', 'deviantart.com',
+            'pixiv.net', 'artstation.com', 'newgrounds.com', 'hentai-img.com',
+            'anime-pictures.net', 'safebooru.org', 'booru.org', 'mishimmie.com',
+            'twibooru.org', 'derpicdn.net', 'static1.e621.net', 'paheal.net',
+            'rule34hentai.net', 'xxxbunker.com', 'hentai.xxx', 'animeporn.xxx',
+            'cartoonporn.xxx', 'rule34.world', 'hentaipros.com', 'hentaihere.com',
+            'doujinshi.org', 'hentaicafe.com', 'hentairead.com', 'doujinmoe.us'
         }
 
         
-        # NSFW URL patterns
+        # NSFW URL patterns (enhanced with anime/hentai terms)
         self.nsfw_patterns = [
             r'porn', r'xxx', r'sex', r'nude', r'naked', r'adult',
             r'erotic', r'fetish', r'bdsm', r'milf', r'teen',
             r'amateur', r'webcam', r'cam', r'live.*sex',
-            r'escort', r'hookup', r'dating.*adult'
+            r'escort', r'hookup', r'dating.*adult',
+            # ANIME/HENTAI PATTERNS
+            r'hentai', r'doujin', r'ecchi', r'ahegao', r'oppai',
+            r'futanari', r'yaoi', r'yuri', r'shotacon', r'lolicon',
+            r'rule34', r'r34', r'lewds?', r'nsfw.*anime',
+            r'anime.*porn', r'cartoon.*porn', r'manga.*porn',
+            r'tentacle', r'monster.*girl', r'catgirl.*nude',
+            r'waifu.*nude', r'anime.*sex', r'harem.*anime',
+            r'18\+.*anime', r'adult.*anime', r'mature.*anime'
         ]
         
         # Browser processes to monitor
@@ -179,18 +181,18 @@ class AggressiveNSFWDetector:
         return url
     
     def is_nsfw_website(self, url, window_title=""):
-        """Check if URL or window title indicates NSFW content"""
+        """Check if URL or window title indicates NSFW content (including anime/hentai)"""
         if not url and not window_title:
             return False, "No URL or title to check"
         
         text_to_check = f"{url or ''} {window_title}".lower()
         
-        # Check against known NSFW domains
+        # Check against known NSFW domains (now includes anime/hentai sites)
         for domain in self.nsfw_domains:
             if domain in text_to_check:
                 return True, f"Blocked domain: {domain}"
         
-        # Check against NSFW patterns
+        # Check against NSFW patterns (now includes anime/hentai patterns)
         for pattern in self.nsfw_patterns:
             if re.search(pattern, text_to_check, re.IGNORECASE):
                 return True, f"Blocked pattern: {pattern}"
@@ -199,13 +201,163 @@ class AggressiveNSFWDetector:
         if any(social in text_to_check for social in ['reddit.com', 'twitter.com', 'instagram.com']):
             nsfw_social_patterns = [
                 r'/r/nsfw', r'/r/gonewild', r'/r/porn', r'/r/sex',
-                r'#nsfw', r'#porn', r'#nude', r'#sex'
+                r'/r/hentai', r'/r/rule34', r'/r/ecchi', r'/r/anime.*nsfw',
+                r'#nsfw', r'#porn', r'#nude', r'#sex', r'#hentai', r'#rule34'
             ]
             for pattern in nsfw_social_patterns:
                 if re.search(pattern, text_to_check, re.IGNORECASE):
                     return True, f"NSFW social media content: {pattern}"
         
         return False, "Clean content"
+    
+    def detect_anime_characteristics(self, image):
+        """Detect anime/cartoon characteristics in images"""
+        if image is None:
+            return 0
+        
+        # Convert to different color spaces for analysis
+        hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        
+        anime_score = 0
+        
+        # 1. Detect high saturation colors (common in anime)
+        high_sat_mask = cv2.inRange(hsv, np.array([0, 100, 50]), np.array([180, 255, 255]))
+        high_sat_percentage = (cv2.countNonZero(high_sat_mask) / (image.shape[0] * image.shape[1])) * 100
+        anime_score += min(high_sat_percentage * 0.3, 10)
+        
+        # 2. Detect flat color regions (cel-shading effect)
+        # Reduce noise and find flat regions
+        blurred = cv2.bilateralFilter(image, 15, 80, 80)
+        edges = cv2.Canny(gray, 50, 150)
+        
+        # Count edge density - anime has fewer, cleaner edges
+        edge_density = (cv2.countNonZero(edges) / (image.shape[0] * image.shape[1])) * 100
+        if edge_density < 15:  # Low edge density suggests flat coloring
+            anime_score += (15 - edge_density) * 0.5
+        
+        # 3. Detect large uniform color areas
+        # Convert to LAB for better color analysis
+        lab = cv2.cvtColor(image, cv2.COLOR_BGR2LAB)
+        
+        # Find connected components of similar colors
+        for channel in range(3):
+            channel_data = lab[:, :, channel]
+            # Threshold to find uniform regions
+            _, thresh = cv2.threshold(channel_data, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+            
+            # Find large uniform regions
+            contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            for contour in contours:
+                area = cv2.contourArea(contour)
+                if area > (image.shape[0] * image.shape[1]) * 0.05:  # 5% of image
+                    anime_score += min(area / 10000, 3)
+        
+        # 4. Check for typical anime/hentai color palettes
+        # Anime often uses specific skin tones
+        anime_skin_lower = np.array([0, 30, 120])
+        anime_skin_upper = np.array([30, 150, 255])
+        anime_skin_mask = cv2.inRange(hsv, anime_skin_lower, anime_skin_upper)
+        anime_skin_percentage = (cv2.countNonZero(anime_skin_mask) / (image.shape[0] * image.shape[1])) * 100
+        
+        # Check for bright/neon colors common in anime
+        bright_colors = [
+            ([100, 200, 200], [130, 255, 255]),  # Blue range
+            ([0, 200, 200], [20, 255, 255]),     # Red range  
+            ([40, 200, 200], [80, 255, 255]),    # Green range
+            ([130, 200, 200], [170, 255, 255]),  # Purple range
+            ([20, 200, 200], [40, 255, 255])     # Yellow range
+        ]
+        
+        bright_color_score = 0
+        for lower, upper in bright_colors:
+            mask = cv2.inRange(hsv, np.array(lower), np.array(upper))
+            percentage = (cv2.countNonZero(mask) / (image.shape[0] * image.shape[1])) * 100
+            bright_color_score += min(percentage * 0.2, 2)
+        
+        anime_score += bright_color_score
+        anime_score += min(anime_skin_percentage * 0.4, 8)
+        
+        return anime_score
+    
+    def detect_anime_explicit_content(self, image):
+        """Specialized detection for anime/hentai explicit content"""
+        if image is None:
+            return 0
+        
+        # Convert to HSV for better color analysis
+        hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+        
+        explicit_anime_score = 0
+        
+        # 1. Detect exaggerated anime skin tones (often pinker/more saturated)
+        anime_skin_ranges = [
+            ([0, 40, 100], [25, 200, 255]),     # Pink skin tones
+            ([140, 30, 120], [180, 180, 255]),   # Purple-pink tones
+            ([15, 60, 140], [35, 255, 255])      # Peach/orange tones
+        ]
+        
+        total_anime_skin = 0
+        for lower, upper in anime_skin_ranges:
+            mask = cv2.inRange(hsv, np.array(lower), np.array(upper))
+            percentage = (cv2.countNonZero(mask) / (image.shape[0] * image.shape[1])) * 100
+            total_anime_skin += percentage
+        
+        explicit_anime_score += min(total_anime_skin * 0.6, 15)
+        
+        # 2. Detect large flesh-colored regions with anime characteristics
+        if total_anime_skin > 20:  # Significant anime skin presence
+            # Look for large connected regions
+            combined_mask = np.zeros(image.shape[:2], dtype=np.uint8)
+            for lower, upper in anime_skin_ranges:
+                mask = cv2.inRange(hsv, np.array(lower), np.array(upper))
+                combined_mask = cv2.bitwise_or(combined_mask, mask)
+            
+            # Find large regions
+            contours, _ = cv2.findContours(combined_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            large_region_score = 0
+            
+            for contour in contours:
+                area = cv2.contourArea(contour)
+                if area > (image.shape[0] * image.shape[1]) * 0.08:  # 8% of image
+                    large_region_score += min(area / 5000, 8)
+            
+            explicit_anime_score += large_region_score
+        
+        # 3. Check for bright/neon colors that might indicate explicit anime content
+        # Hentai often uses exaggerated, bright colors
+        explicit_color_ranges = [
+            ([140, 100, 180], [180, 255, 255]),  # Bright pink/magenta
+            ([0, 150, 200], [15, 255, 255]),     # Bright red
+            ([100, 150, 180], [140, 255, 255])   # Bright cyan/blue
+        ]
+        
+        bright_explicit_score = 0
+        for lower, upper in explicit_color_ranges:
+            mask = cv2.inRange(hsv, np.array(lower), np.array(upper))
+            percentage = (cv2.countNonZero(mask) / (image.shape[0] * image.shape[1])) * 100
+            bright_explicit_score += min(percentage * 0.3, 3)
+        
+        explicit_anime_score += bright_explicit_score
+        
+        # 4. Detect gradients and soft shading (common in anime explicit content)
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        
+        # Look for smooth gradients
+        grad_x = cv2.Sobel(gray, cv2.CV_64F, 1, 0, ksize=3)
+        grad_y = cv2.Sobel(gray, cv2.CV_64F, 0, 1, ksize=3)
+        
+        # Calculate gradient magnitude
+        gradient_mag = np.sqrt(grad_x**2 + grad_y**2)
+        
+        # Look for areas with moderate gradients (smooth shading)
+        moderate_gradient_mask = cv2.inRange(gradient_mag.astype(np.uint8), 20, 80)
+        moderate_gradient_percentage = (cv2.countNonZero(moderate_gradient_mask) / (image.shape[0] * image.shape[1])) * 100
+        
+        if moderate_gradient_percentage > 15:  # Significant smooth shading
+            explicit_anime_score += min(moderate_gradient_percentage * 0.2, 5)
+        
+        return explicit_anime_score
     
     def close_browser_tab(self, process_name, window_title, hwnd):
         """Close current browser tab instead of entire browser"""
