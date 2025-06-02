@@ -14,11 +14,12 @@ import math
 import re
 import requests
 from urllib.parse import urlparse
+import subprocess
 
 class AggressiveNSFWDetector:
     def __init__(self, check_interval=0.5, sensitivity='medium'):
         """
-        Aggressive NSFW Detection System with Website URL checking
+        Aggressive NSFW Detection System with Tab-specific closing for browsers
         """
         self.check_interval = check_interval
         self.sensitivity = sensitivity
@@ -27,9 +28,9 @@ class AggressiveNSFWDetector:
         
         # Much more aggressive thresholds
         self.thresholds = {
-            'low': {'total_score': 35, 'skin_threshold': 25, 'explicit_threshold': 20},
-            'medium': {'total_score': 25, 'skin_threshold': 18, 'explicit_threshold': 15},
-            'high': {'total_score': 15, 'skin_threshold': 12, 'explicit_threshold': 10}
+            'low': {'total_score': 36, 'skin_threshold': 25, 'explicit_threshold': 20},
+            'medium': {'total_score': 26, 'skin_threshold': 18, 'explicit_threshold': 15},
+            'high': {'total_score': 16, 'skin_threshold': 12, 'explicit_threshold': 10}
         }
         
         self.excluded_processes = {
@@ -47,8 +48,70 @@ class AggressiveNSFWDetector:
             'chaturbate.com', 'cam4.com', 'bongacams.com', 'stripchat.com',
             'onlyfans.com', 'fansly.com', 'manyvids.com', 'clips4sale.com',
             'reddit.com/r/nsfw', 'reddit.com/r/gonewild', 'reddit.com/r/porn',
-            'tumblr.com', 'twitter.com', 'instagram.com'  # These need content checking
+            'tumblr.com', 'twitter.com', 'instagram.com',
+            'efukt.com', 'hclips.com', 'tnaflix.com', 'fux.com',
+            'motherless.com', 'porndoe.com', 'lubetube.com', 'drtuber.com',
+            'slutload.com', 'watchmygf.me', 'voyeurhit.com', 'camwhores.tv',
+            'pervclips.com', 'hqporner.com', 'javhd.com', 'beeg.com',
+            'xempire.com', 'teamSkeet.com', 'evilangel.com', 'metart.com',
+            'x-art.com', 'hotmovies.com', 'private.com', 'wetandpuffy.com',
+            '3movs.com', 'realgfporn.com', 'analdin.com', 'submityourflicks.com',
+            'tubegalore.com', 'yespornplease.com',
+            'nuvid.com', 'sex.com', 'faproulette.co', 'rule34.xxx',
+            'rule34video.com', 'realitylovers.com', 'vrbangers.com', 'vrconk.com',
+            'realpornclip.com', 'pinkvisualpass.com', 'hentaigasm.com', 'hentaitube.tv',
+            'leakgirls.com', 'iwatchporn.com', 'bellesa.co', 'wearehairy.com',
+            'allinternal.com', 'newbienudes.com', 'justporno.tv', 'pornerbros.com',
+            'bustyteens.org', 'nudogram.com', 'sexvid.xxx', 'sexu.com',
+            'yesporn.vip', 'xozilla.com', 'hqporntube.com', 'spankwire.com',
+            'xgasm.com', 'xpee.com', 'tushy.com', 'blacked.com',
+            'passion-hd.com', 'nubilefilms.com', 'lesbea.com', 'teamskeetselects.com',
+            'wowgirls.com', 'erome.com', 'daftsex.com', 'badjojo.com',
+            'porno365.com', 'vipissy.com', 'extremetube.com', 'mypornmotion.com',
+            'porndig.com', 'wetplace.com', 'pornohd.com', 'gotporn.com',
+            'milfzr.com', 'freexcafe.com',
+            'brazzersnetwork.com', 'publicagent.com', 'fakehub.com', 'firstanalquest.com',
+            'analvids.com', 'castingcouch-hd.com', 'ftvgirls.com', 'watchersweb.com',
+            'joymii.com', 'sexart.com', 'alsangels.com', 'alscan.com',
+            'twistys.com', 'desirefilms.com', 'lustcinema.com', 'vivthomas.com',
+            'joyourself.com', 'mofos.com', 'loveherfeet.com', 'pinkotgirls.com',
+            'bravoporn.com', 'handjobhub.com', 'teensnow.com', '18xgirls.com',
+            'pornhat.com', 'pornbimbo.com', 'bigtitsroundasses.com', 'babes.com',
+            'deliciousnights.com', 'watchmygf.net', 'see.xxx', 'tranny.one',
+            'transangels.com', 'grooby.com', 'shemaletubevideos.com', 'shemalestardb.com',
+            'helloladyboy.com', 'thothub.lol', 'leakgirls.cc', 'thesexdoll.org',
+            'excoffice.com', 'camsoda.com', 'sexcamly.com', 'mydirtyhobby.com',
+            'homepornbay.com', 'homemoviestube.com', 'spizoo.com', 'privatecasting-x.com',
+            'realteengirls.com', 'wankoz.com',
+            'nudevista.com', 'javcl.com', 'eroxia.com', 'biguz.net',
+            'sexvid.pro', 'hardsextube.com', 'ok.xxx', 'eporner.com',
+            'porntrex.com', 'keezmovies.com', 'empflix.com', 'yuvutu.com',
+            'madthumbs.com', 'ah-me.com', 'vidz.com', 'pornicom.com',
+            'adulttime.com', 'xrares.com', 'naughtyblog.org', 'javfinder.is',
+            'jav.guru', 'hotjav.com', 'javjunkies.com', 'freematureporn.org',
+            'maturetubehere.com', 'grandmams.com', 'oldje.com', 'maturesfuckyoungboys.com',
+            'momxxx.com', 'milftoon.com', 'toonpass.com', '3dhentaivideo.com',
+            'simply-hentai.com', 'hentai-foundry.com', 'multporn.net', '8muses.xxx',
+            'luxuretv.com', 'anysex.com', 'porn300.com', 'hdzog.com',
+            'boyfriendtv.com', 'spankbang.party', 'czechav.com', '21naturals.com',
+            'analbeauty.com', 'trueamateurmodels.com', 'watchxxxfree.cc', 'babesource.com',
+            '18stream.com', 'pornrabbit.com', 'cliphunter.com', 'watchporn.to',
+            'letfap.com', 'planetsuzy.org', 'pornrips.cc', 'tubepornclassic.com',
+            'xvxx.com', 'vipergirls.to', 'pornrewind.com', 'hot-sex-tube.com',
+            'clipsage.com', 'adultbay.org', 'camsfinder.com', 'camstreams.tv',
+            'chatubate.cam', 'leakgirls.live', 'recurbate.com', 'extralunchmoney.com',
+            'camplace.com', 'streamate.com', 'watchgirlsplay.com', 'sxyprn.com',
+            'wetpussygames.com', 'sextvx.com', 'camsfinder.live', 'xxxtube.com',
+            'madporns.com', 'xvideosdesi.com', 'xhamsterlive.com', 'xxxaporn.com',
+            'fuckmaturetube.com', 'sextb.net', 'voyeurweb.com', 'filf.com',
+            'nudefakes.net', 'videobox.com', 'alotporn.com', 'tubewolf.com',
+            'teenslikeitbig.com', 'realityjunkies.com', 'nurumassage.com', 'digitaldesire.com',
+            'digitalplayground.com', 'sexyhub.com', 'hustler.com', 'wicked.com',
+            'penthouse.com', 'metcams.com', 'camsoda.cam', 'secretfriends.com'
+
+
         }
+
         
         # NSFW URL patterns
         self.nsfw_patterns = [
@@ -143,6 +206,101 @@ class AggressiveNSFWDetector:
                     return True, f"NSFW social media content: {pattern}"
         
         return False, "Clean content"
+    
+    def close_browser_tab(self, process_name, window_title, hwnd):
+        """Close current browser tab instead of entire browser"""
+        try:
+            browser_name = process_name.lower()
+            success = False
+            
+            print(f"🚫 CLOSING TAB: {window_title}")
+            
+            # Make sure the browser window is active
+            win32gui.SetForegroundWindow(hwnd)
+            time.sleep(0.1)
+            
+            # Different methods for different browsers
+            if 'chrome' in browser_name or 'msedge' in browser_name or 'brave' in browser_name:
+                # Chrome, Edge, Brave: Ctrl+W
+                win32api.keybd_event(win32con.VK_CONTROL, 0, 0, 0)
+                win32api.keybd_event(ord('W'), 0, 0, 0)
+                win32api.keybd_event(ord('W'), 0, win32con.KEYEVENTF_KEYUP, 0)
+                win32api.keybd_event(win32con.VK_CONTROL, 0, win32con.KEYEVENTF_KEYUP, 0)
+                success = True
+                print("✅ Sent Ctrl+W to close tab")
+                
+            elif 'firefox' in browser_name:
+                # Firefox: Ctrl+W
+                win32api.keybd_event(win32con.VK_CONTROL, 0, 0, 0)
+                win32api.keybd_event(ord('W'), 0, 0, 0)
+                win32api.keybd_event(ord('W'), 0, win32con.KEYEVENTF_KEYUP, 0)
+                win32api.keybd_event(win32con.VK_CONTROL, 0, win32con.KEYEVENTF_KEYUP, 0)
+                success = True
+                print("✅ Sent Ctrl+W to close Firefox tab")
+                
+            elif 'opera' in browser_name:
+                # Opera: Ctrl+W
+                win32api.keybd_event(win32con.VK_CONTROL, 0, 0, 0)
+                win32api.keybd_event(ord('W'), 0, 0, 0)
+                win32api.keybd_event(ord('W'), 0, win32con.KEYEVENTF_KEYUP, 0)
+                win32api.keybd_event(win32con.VK_CONTROL, 0, win32con.KEYEVENTF_KEYUP, 0)
+                success = True
+                print("✅ Sent Ctrl+W to close Opera tab")
+                
+            elif 'iexplore' in browser_name:
+                # Internet Explorer: Ctrl+W
+                win32api.keybd_event(win32con.VK_CONTROL, 0, 0, 0)
+                win32api.keybd_event(ord('W'), 0, 0, 0)
+                win32api.keybd_event(ord('W'), 0, win32con.KEYEVENTF_KEYUP, 0)
+                win32api.keybd_event(win32con.VK_CONTROL, 0, win32con.KEYEVENTF_KEYUP, 0)
+                success = True
+                print("✅ Sent Ctrl+W to close IE tab")
+                
+            else:
+                # Generic browser: try Ctrl+W
+                win32api.keybd_event(win32con.VK_CONTROL, 0, 0, 0)
+                win32api.keybd_event(ord('W'), 0, 0, 0)
+                win32api.keybd_event(ord('W'), 0, win32con.KEYEVENTF_KEYUP, 0)
+                win32api.keybd_event(win32con.VK_CONTROL, 0, win32con.KEYEVENTF_KEYUP, 0)
+                success = True
+                print("✅ Sent generic Ctrl+W to close tab")
+            
+            # Small delay to let the tab close
+            time.sleep(0.5)
+            
+            return success
+            
+        except Exception as e:
+            print(f"❌ Error closing tab for {process_name}: {e}")
+            return False
+    
+    def close_application(self, pid, process_name, window_title, hwnd=None):
+        """Close application - for browsers, close tab; for others, close app"""
+        try:
+            # If it's a browser, try to close just the tab
+            if process_name.lower() in self.browser_processes and hwnd:
+                return self.close_browser_tab(process_name, window_title, hwnd)
+            
+            # For non-browser applications, close the entire app
+            process = psutil.Process(pid)
+            
+            print(f"🚫 CLOSING APPLICATION: {process_name} - {window_title}")
+            
+            # Immediate termination for explicit content
+            process.terminate()
+            
+            # Force kill after short wait
+            try:
+                process.wait(timeout=1)
+            except psutil.TimeoutExpired:
+                process.kill()
+                print(f"⚡ Force killed {process_name}")
+            
+            return True
+            
+        except Exception as e:
+            print(f"❌ Error closing {process_name}: {e}")
+            return False
     
     def get_active_window(self):
         """Get the currently active window with enhanced browser detection"""
@@ -382,36 +540,13 @@ class AggressiveNSFWDetector:
         
         return total_score > threshold, detection_info
     
-    def close_application(self, pid, process_name, window_title):
-        """Close application immediately"""
-        try:
-            process = psutil.Process(pid)
-            
-            print(f"🚫 CLOSING: {process_name} - {window_title}")
-            
-            # Immediate termination for explicit content
-            process.terminate()
-            
-            # Force kill after short wait
-            try:
-                process.wait(timeout=1)
-            except psutil.TimeoutExpired:
-                process.kill()
-                print(f"⚡ Force killed {process_name}")
-            
-            return True
-            
-        except Exception as e:
-            print(f"❌ Error closing {process_name}: {e}")
-            return False
-    
     def monitor_for_explicit_content(self):
-        """Main monitoring loop with aggressive detection and URL checking"""
-        print("🔥 AGGRESSIVE NSFW MONITOR ACTIVE")
+        """Main monitoring loop with aggressive detection and tab-specific closing"""
+        print("🔥 ENHANCED NSFW MONITOR WITH TAB CLOSING")
         print(f"⚙️  Sensitivity: {self.sensitivity.upper()}")
         print(f"🔄 Check every: {self.check_interval}s")
-        print("🎯 Will close ANY app showing explicit content")
-        print("🌐 Now includes website URL checking!")
+        print("🌐 Browsers: Close TAB only (Ctrl+W)")
+        print("📱 Other apps: Close entire application")
         print("📺 YouTube content is EXCLUDED from detection")
         print("🔄 Running continuously in background...\n")
         
@@ -464,7 +599,7 @@ class AggressiveNSFWDetector:
                             print(f"📊 Scores - Total: {info['total_score']:.1f}, Skin: {info['skin_score']:.1f}, Explicit: {info['explicit_score']:.1f}, Flesh: {info['flesh_score']:.1f}")
                             print(f"🎯 Threshold: {info['threshold']}")
                 
-                # If NSFW detected by either method, close the application
+                # If NSFW detected by either method, take action
                 if is_nsfw_detected:
                     detection_count += 1
                     self.consecutive_detections += 1
@@ -473,16 +608,20 @@ class AggressiveNSFWDetector:
                     print(f"\n🚫 DETECTION #{detection_count}: {detection_reason}")
                     
                     if window:
+                        action_type = "TAB" if window['is_browser'] else "APPLICATION"
+                        print(f"🎯 Target: {action_type}")
+                        
                         success = self.close_application(
                             window['pid'],
                             window['process_name'], 
-                            window['window_title']
+                            window['window_title'],
+                            window.get('hwnd')
                         )
                         
                         if success:
-                            print("✅ Application terminated successfully")
+                            print(f"✅ {action_type} closed successfully")
                         else:
-                            print("❌ Failed to terminate application")
+                            print(f"❌ Failed to close {action_type}")
                     else:
                         print("❓ No active window found")
                     
@@ -497,7 +636,7 @@ class AggressiveNSFWDetector:
                 time.sleep(0.5)
     
     def start_monitoring(self):
-        """Start the aggressive monitor"""
+        """Start the enhanced monitor"""
         if not self.monitoring:
             self.monitoring = True
             self.monitor_thread = threading.Thread(target=self.monitor_for_explicit_content)
@@ -513,10 +652,10 @@ class AggressiveNSFWDetector:
             self.monitor_thread.join(timeout=2)
 
 def main():
-    print("🔥 AGGRESSIVE NSFW DETECTION SYSTEM 🔥")
-    print("⚡ Will aggressively detect and close explicit content")
+    print("🔥 ENHANCED NSFW DETECTION WITH TAB CLOSING 🔥")
+    print("🌐 Smart browser handling: Closes TABS, not entire browser!")
+    print("📱 Non-browser apps: Still closes entire application")
     print("🎯 Now includes website URL checking + image analysis")
-    print("🌐 Blocks known NSFW websites instantly!")
     print("📺 YouTube content is EXCLUDED from detection\n")
     
     # Use default settings - no user input required
@@ -529,13 +668,13 @@ def main():
     print(f"   - Website checking: ENABLED")
     print(f"   - Image analysis: ENABLED")
     print(f"   - YouTube exception: ENABLED")
-    print(f"   - Target: Active window")
-    print(f"   - Action: Immediate termination")
+    print(f"   - Browser action: Close TAB (Ctrl+W)")
+    print(f"   - Other apps action: Close APPLICATION")
     print(f"   - Mode: CONTINUOUS (runs until process terminated)")
     
     monitor = AggressiveNSFWDetector(check_interval=interval, sensitivity=sensitivity)
     
-    print("\n🚨 Starting ENHANCED monitoring automatically...")
+    print("\n🚨 Starting ENHANCED monitoring with tab closing...")
     print("🔄 Monitor will run continuously in background...")
     print("🛑 Use Task Manager to stop if needed\n")
     
