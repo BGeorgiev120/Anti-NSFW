@@ -1,4 +1,5 @@
 # NSFW Detection System
+![DEV](https://img.shields.io/badge/Dev-Bojidar%20Georgiev%20-%20%2347b3ff)
 
 A comprehensive content monitoring system that detects and automatically closes applications displaying explicit content through advanced image analysis and website URL checking.
 
